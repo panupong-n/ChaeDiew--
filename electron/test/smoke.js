@@ -10,9 +10,17 @@ const outDir = process.argv[process.argv.indexOf('--smoke') + 1] && !process.arg
   ? process.argv[process.argv.indexOf('--smoke') + 1] : fs.mkdtempSync(path.join(os.tmpdir(), 'tenix-smoke-'));
 fs.mkdirSync(outDir, { recursive: true });
 
-let failures = 0, passes = 0;
+// Every line also goes to <outDir>/smoke.log as it happens, so a run that hangs still shows how far it got.
+const logFile = path.join(outDir, 'smoke.log');
+fs.writeFileSync(logFile, '');
+const log0 = console.log;
+console.log = (...a) => { log0(...a); try { fs.appendFileSync(logFile, a.join(' ') + '\n'); } catch { /* best effort */ } };
+let failures = 0, passes = 0, lastCheck = '(start)';
+// A run that stops making progress (a window that never answers) must fail loudly instead of hanging the terminal.
+const watchdog = setTimeout(() => { console.log('FAIL  smoke run stuck after: ' + lastCheck); require('electron').app.exit(2); }, 360000);
 function check(name, ok, detail) {
-  if (ok) { passes++; console.log('PASS  ' + name); } else { failures++; console.log('FAIL  ' + name + (detail ? '  —  ' + detail : '')); }
+  lastCheck = name;
+  if (ok) { passes++; console.log('PASS  ' + name); } else { failures++; console.log('FAIL  ' + name + (detail !== undefined ? '  —  ' + (typeof detail === 'string' ? detail : JSON.stringify(detail)) : '')); }
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function shot(win, name) {
@@ -46,6 +54,12 @@ async function mockImage() {
 async function run(h) {
   const { openEditor, showLicense, showHome, license, licenseStatus } = h;
   console.log('Screenshots go to ' + outDir);
+  // Script errors and Content-Security-Policy refusals in any page (an inline script that never runs is otherwise silent).
+  const pageErrors = [];
+  require('electron').app.on('web-contents-created', (e, wc) => wc.on('console-message', m => {
+    const text = String(m.message || ''), level = m.level;
+    if (level === 'error' || /Content Security Policy|Uncaught/.test(text)) pageErrors.push(`${wc.getURL().split('/').pop().slice(0, 40)}: ${text.slice(0, 160)}`);
+  }));
 
   // ------------------------------------------------ editor
   const image = await mockImage();
@@ -136,7 +150,7 @@ async function run(h) {
   await shot(win, '03-edit-text-lines');
   const target = lines.find(l => /Total/i.test(l.t)) || lines[0];
   const cx = (target.b.x0 + target.b.x1) / 2, cy = (target.b.y0 + target.b.y1) / 2;
-  await ev(`__test.click(${cx}, ${cy})`);
+  await ev(`__test.click(${cx}, ${cy}, 1, { shiftKey: true })`);     // Shift-click = the whole line
   await sleep(300);
   shapes = await ev('JSON.parse(JSON.stringify(__test.shapes()))');
   const retyped = shapes.find(s => s.type === 'text');
@@ -178,6 +192,7 @@ async function run(h) {
   const copyRes = await ev(`window.tenix.gate()`);
   check('during the trial copying is allowed', copyRes && copyRes.ok === true);
   win.show(); win.focus(); await sleep(400);   // the Clipboard API only works in the focused window
+  require('electron').clipboard.clear();       // so a picture left over from an earlier run cannot pass this check
   await ev(`document.querySelector('[aria-label="Copy picture"], [aria-label="คัดลอกภาพ"]').click()`);
   await sleep(700);
   const clipWidth = await ev(`navigator.clipboard.read().then(async items => { const blob = await items[0].getType('image/png'); return (await createImageBitmap(blob)).width; }).catch(e => 'ERR ' + e.message)`);
@@ -190,21 +205,44 @@ async function run(h) {
   if (fs.existsSync(csv)) {
     const key = fs.readFileSync(csv, 'utf8').trim().split('\n')[1].split(',')[5];
     license.activate(key);
-    check('a genuine key is Licensed at once (no activation code)', stage('licensed'));
-    if (licWin && !licWin.isDestroyed()) { licWin.webContents.send('license:changed'); await sleep(600); await shot(licWin, '10-license-licensed'); }
-    license.now = () => new Date(Date.now() + 60 * 86400000);
-    check('it keeps working after the trial would have ended', licenseStatus().allowsUse && (await ev(`window.tenix.gate()`)).ok === true);
-    license.remove();
-    check('after removing the key the trial has ended, so copying is refused', !licenseStatus().allowsUse && (await ev(`window.tenix.gate()`)).error === 'license');
+    check('a genuine key switches the app on at once', stage('licensed'));
+    h.broadcast && h.broadcast();
+    if (licWin) { licWin.webContents.send('license:changed'); await sleep(600); await shot(licWin, '10-license-needs-activation'); }
+    license.now = () => new Date(Date.now() + 20 * 86400000);
+    check('after the trial, the key keeps the app unlocked', stage('licensed') && licenseStatus().allowsUse);
+    const blocked = await ev(`window.tenix.gate()`);
+    check('and copying is allowed', blocked && blocked.ok);
     await sleep(600);
+    license.now = () => new Date();
+    license.remove();
+  }
+  if (process.env.TENIX_SMOKE_KEY && process.env.TENIX_SMOKE_ACT) {
+    license.activate(process.env.TENIX_SMOKE_KEY); license.activate(process.env.TENIX_SMOKE_ACT);
+    check('the right key + activation code switch the app on', stage('licensed'));
+    if (licWin && !licWin.isDestroyed()) { licWin.webContents.send('license:changed'); await sleep(600); await shot(licWin, '11-license-active'); }
+    license.now = () => new Date(Date.now() + 40 * 86400000);
+    check('and it keeps working after the trial would have ended', licenseStatus().allowsUse);
     license.now = () => new Date();
   }
 
-  // Thai interface
-  h.settings.set('lang', 'th');
-  for (const w of BrowserWindow.getAllWindows()) w.webContents.reload();
-  await sleep(2500);
-  await ev(`__test && 0`).catch(() => {});
+  // ------------------------------------------------ platform checks (Windows first-run risks; also run on macOS)
+  await require('./smoke-platform').run(h, { check, shot, sleep, outDir, win });
+
+  // ------------------------------------------------ tools ported from the native app, on a fresh editor with the same picture
+  const freshEditor = async () => {
+    const w = openEditor(await mockImage(), 1);
+    w.setSize(1320, 860);
+    for (let i = 0; i < 100 && !(await w.webContents.executeJavaScript('!!window.__test').catch(() => false)); i++) await sleep(100);
+    await sleep(300);
+    return w;
+  };
+  await require('./smoke-tools').run(h, { check, shot, sleep, outDir, win: freshEditor });
+  // ------------------------------------------------ pin, print, GIF, upload, history, scrolling capture
+  await require('./smoke-extras').run(h, { check, shot, sleep, outDir, editor: freshEditor });
+
+  // Thai interface: switched live, like the home window's language buttons (the editor keeps its marks)
+  h.setLanguage('th');
+  await sleep(1500);
   if (!win.isDestroyed()) {
     for (let i = 0; i < 50 && !(await ev('!!window.__test').catch(() => false)); i++) await sleep(100);
     await ev(`__test.setTool('counter'); __test.click(300, 300); __test.click(360, 300);`).catch(() => {});
@@ -216,7 +254,7 @@ async function run(h) {
   await sleep(900);
   const licTh = BrowserWindow.getAllWindows().find(w => /ไลเซนส์/.test(w.getTitle()));
   if (licTh) await shot(licTh, '15-license-thai');
-  h.settings.set('lang', 'en');
+  h.setLanguage('en');
 
   showHome();
   await sleep(800);
@@ -236,7 +274,9 @@ async function run(h) {
   for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.close();
   await sleep(1200);
   check('closing the editor and other windows raises no error', errors.length === 0, errors.join(' | '));
+  check('no page reported a script error or a blocked (CSP) script', pageErrors.length === 0, pageErrors.slice(0, 6).join(' | '));
 
+  clearTimeout(watchdog);
   console.log(`\n${failures ? 'SOME CHECKS FAILED' : 'All smoke checks passed.'} (${passes} passed, ${failures} failed)`);
   process.exitCode = failures ? 1 : 0;
 }

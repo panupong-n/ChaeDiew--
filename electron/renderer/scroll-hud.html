@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Scrolling capture</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { display: flex; align-items: center; gap: 12px; padding: 0 10px 0 14px; border: 1px solid var(--line); border-radius: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; animation: pulse 1.2s ease-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  .msg { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .btn { min-height: 30px; }
+</style>
+</head>
+<body>
+  <span class="dot" aria-hidden="true"></span>
+  <span class="msg" id="msg" role="status"></span>
+  <button class="btn" id="cancel" data-t="Cancel"></button>
+  <button class="btn primary" id="done" data-t="Done"></button>
+  <script src="common.js"></script>
+  <script src="scroll-hud.js"></script>
+</body>
+</html>

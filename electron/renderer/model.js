@@ -18,7 +18,9 @@
     next(text) { return CounterText.step(text, 1); },
   };
 
-  const BOX_TYPES = ['rect', 'ellipse', 'highlight', 'blur'];
+  const BOX_TYPES = ['rect', 'ellipse', 'highlight', 'blur', 'spotlight'];
+  const LINE_TYPES = ['line', 'arrow', 'measure'];
+  const COUNTER_ANGLE = Math.PI * 3 / 4;      // the counter's pointer: down and to the left unless turned
 
   function normBox(s) {
     const x = Math.min(s.x, s.x + s.w), y = Math.min(s.y, s.y + s.h);
@@ -37,7 +39,32 @@
   function counterGeometry(s, measure) {
     const d = s.size;
     const w = Math.max(d, measure(s.label, d * 0.54, true) + d * 0.5);
-    return { x: s.x - w / 2, y: s.y - d / 2, w, h: d, d };
+    const a = s.angle == null ? COUNTER_ANGLE : s.angle;
+    // The pointer's tip, and the handle just beyond it that turns it (as in the native app).
+    const tip = { x: s.x + (w / 2 + d * 0.3) * Math.cos(a), y: s.y + (d / 2 + d * 0.3) * Math.sin(a) };
+    const handle = { x: s.x + (w / 2 + d * 0.62) * Math.cos(a), y: s.y + (d / 2 + d * 0.62) * Math.sin(a) };
+    return { x: s.x - w / 2, y: s.y - d / 2, w, h: d, d, angle: a, tip, handle };
+  }
+
+  /** Magnifier: source circle (x, y, r), bubble centre (bx, by) and radius r × zoom. */
+  function magnifierGeometry(s) {
+    const zoom = Math.max(2, Math.min(4, s.zoom || 2)), br = s.r * zoom;
+    const bx = s.bx == null ? s.x + s.r + br + 10 : s.bx, by = s.by == null ? s.y : s.by;
+    return { r: s.r, br, bx, by, zoom };
+  }
+
+  /**
+   * Ruler: the run of pixels around (x, y) along a row (horizontal) or a column that stay within `tol` of the pixel under the pointer —
+   * the flat-coloured element the pointer is on. `px(x, y)` returns [r, g, b]. Returns [from, to] inclusive. Port of PixelProbe.run.
+   */
+  function flatRun(px, w, h, x, y, horizontal, tol = 12) {
+    x = Math.max(0, Math.min(w - 1, Math.round(x))); y = Math.max(0, Math.min(h - 1, Math.round(y)));
+    const seed = px(x, y), n = horizontal ? w : h, at = i => (horizontal ? px(i, y) : px(x, i));
+    const same = c => Math.max(Math.abs(c[0] - seed[0]), Math.abs(c[1] - seed[1]), Math.abs(c[2] - seed[2])) <= tol;
+    let a = horizontal ? x : y, b = a;
+    while (a > 0 && same(at(a - 1))) a--;
+    while (b < n - 1 && same(at(b + 1))) b++;
+    return [a, b];
   }
 
   function textLines(s) { return String(s.text).split('\n'); }
@@ -50,8 +77,13 @@
 
   function boundsOf(s, measure) {
     switch (s.type) {
-      case 'rect': case 'ellipse': case 'highlight': case 'blur': return normBox(s);
-      case 'line': case 'arrow': {
+      case 'rect': case 'ellipse': case 'highlight': case 'blur': case 'spotlight': return normBox(s);
+      case 'magnifier': {
+        const g = magnifierGeometry(s);
+        const x = Math.min(s.x - s.r, g.bx - g.br), y = Math.min(s.y - s.r, g.by - g.br);
+        return { x, y, w: Math.max(s.x + s.r, g.bx + g.br) - x, h: Math.max(s.y + s.r, g.by + g.br) - y };
+      }
+      case 'line': case 'arrow': case 'measure': {
         const x = Math.min(s.x1, s.x2), y = Math.min(s.y1, s.y2);
         return { x, y, w: Math.abs(s.x2 - s.x1), h: Math.abs(s.y2 - s.y1) };
       }
@@ -87,11 +119,16 @@
         const mx = (x - (b.x + b.w / 2)) / rx2, my = (y - (b.y + b.h / 2)) / ry2;
         return d <= 1 && mx * mx + my * my >= 1;
       }
-      case 'highlight': case 'blur': case 'text': case 'counter': {
+      case 'highlight': case 'blur': case 'text': case 'counter': case 'spotlight': {
         const b = boundsOf(s, measure);
         return x >= b.x - tol && x <= b.x + b.w + tol && y >= b.y - tol && y <= b.y + b.h + tol;
       }
+      case 'magnifier': {
+        const g = magnifierGeometry(s);
+        return Math.hypot(x - s.x, y - s.y) <= s.r + tol || Math.hypot(x - g.bx, y - g.by) <= g.br + tol;
+      }
       case 'line': case 'arrow': return distToSegment(x, y, s.x1, s.y1, s.x2, s.y2) <= s.width / 2 + tol;
+      case 'measure': return distToSegment(x, y, s.x1, s.y1, s.x2, s.y2) <= 6 + tol;
       case 'pen': {
         for (let i = 1; i < s.pts.length; i++) {
           if (distToSegment(x, y, s.pts[i - 1][0], s.pts[i - 1][1], s.pts[i][0], s.pts[i][1]) <= s.width / 2 + tol) return true;
@@ -104,15 +141,24 @@
 
   function moveShape(s, dx, dy) {
     switch (s.type) {
-      case 'line': case 'arrow': s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; break;
+      case 'line': case 'arrow': case 'measure': s.x1 += dx; s.y1 += dy; s.x2 += dx; s.y2 += dy; break;
       case 'pen': s.pts = s.pts.map(p => [p[0] + dx, p[1] + dy]); break;
+      case 'magnifier': {
+        const g = magnifierGeometry(s);
+        s.x += dx; s.y += dy; s.bx = g.bx + dx; s.by = g.by + dy; break;
+      }
       default: s.x += dx; s.y += dy;
     }
   }
 
   const HANDLE_NAMES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   function handlePoints(s, measure) {
-    if (s.type === 'line' || s.type === 'arrow') return [{ name: 'p1', x: s.x1, y: s.y1 }, { name: 'p2', x: s.x2, y: s.y2 }];
+    if (LINE_TYPES.includes(s.type)) return [{ name: 'p1', x: s.x1, y: s.y1 }, { name: 'p2', x: s.x2, y: s.y2 }];
+    if (s.type === 'counter' && measure) { const g = counterGeometry(s, measure); return [{ name: 'tail', x: g.handle.x, y: g.handle.y, round: true }]; }
+    if (s.type === 'magnifier') {
+      const g = magnifierGeometry(s);
+      return [{ name: 'radius', x: s.x + s.r, y: s.y, round: true }, { name: 'bubble', x: g.bx, y: g.by, round: true }];   // as native: bubble centre
+    }
     if (!BOX_TYPES.includes(s.type)) return [];
     const b = normBox(s);
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2, r = b.x + b.w, bt = b.y + b.h;
@@ -120,6 +166,16 @@
       { name: 'nw', x: b.x, y: b.y }, { name: 'n', x: cx, y: b.y }, { name: 'ne', x: r, y: b.y }, { name: 'e', x: r, y: cy },
       { name: 'se', x: r, y: bt }, { name: 's', x: cx, y: bt }, { name: 'sw', x: b.x, y: bt }, { name: 'w', x: b.x, y: cy },
     ];
+  }
+
+  /** Drags handle `name` of any shape to (x, y): box corners/sides, line ends, the counter's pointer, the magnifier's size or bubble. */
+  function dragHandle(s, name, x, y) {
+    if (name === 'p1') { s.x1 = x; s.y1 = y; return; }
+    if (name === 'p2') { s.x2 = x; s.y2 = y; return; }
+    if (name === 'tail') { s.angle = Math.atan2(y - s.y, x - s.x); return; }
+    if (name === 'radius') { s.r = Math.max(6, Math.hypot(x - s.x, y - s.y)); return; }
+    if (name === 'bubble') { s.bx = x; s.by = y; return; }
+    resizeBox(s, name, x, y);
   }
 
   /** Drags handle `name` of a box shape to (x, y). */
@@ -141,5 +197,11 @@
     return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? '#000000' : '#ffffff';
   }
 
-  return { CounterText, BOX_TYPES, HANDLE_NAMES, normBox, distToSegment, counterGeometry, textMetrics, boundsOf, hit, moveShape, handlePoints, resizeBox, readableOn };
+  /** "#rrggbb" for an [r, g, b] pixel. */
+  const hexOf = c => '#' + c.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase();
+
+  return {
+    CounterText, BOX_TYPES, LINE_TYPES, HANDLE_NAMES, COUNTER_ANGLE, normBox, distToSegment, counterGeometry, magnifierGeometry, flatRun, textMetrics,
+    boundsOf, hit, moveShape, handlePoints, dragHandle, resizeBox, readableOn, hexOf,
+  };
 });

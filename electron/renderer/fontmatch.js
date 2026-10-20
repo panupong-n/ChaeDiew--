@@ -4,9 +4,18 @@
 (function () {
   'use strict';
 
-  const LATIN = ['Helvetica Neue', 'Arial', 'Segoe UI', 'Verdana', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Menlo', 'Consolas', 'Courier New', 'Tahoma', 'Avenir Next', 'Futura', 'Calibri'];
-  const THAI = ['Thonburi', 'Leelawadee UI', 'Tahoma', 'Sukhumvit Set', 'Ayuthaya', 'Krungthep', 'Silom'];
+  // Faces that are not installed are skipped (installed()), so one list serves macOS and Windows. Windows: Segoe UI (menus, dialogs),
+  // Calibri / Aptos (Office), Cambria, Consolas; Thai: Leelawadee UI (Windows UI), TH Sarabun New / Angsana / Cordia / Browallia
+  // (documents and forms), Tahoma, Microsoft Sans Serif (older programs).
+  const LATIN = ['Helvetica Neue', 'Arial', 'Segoe UI', 'Verdana', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Menlo', 'Consolas', 'Courier New', 'Tahoma',
+    'Avenir Next', 'Futura', 'Calibri', 'Aptos', 'Cambria', 'Microsoft Sans Serif', 'Roboto', 'Inter'];
+  const THAI = ['Thonburi', 'Leelawadee UI', 'Leelawadee', 'Tahoma', 'TH Sarabun New', 'TH SarabunPSK', 'Angsana New', 'Cordia New', 'Browallia New',
+    'Microsoft Sans Serif', 'Sukhumvit Set', 'Ayuthaya', 'Krungthep', 'Silom', 'Noto Sans Thai', 'Sarabun', 'Prompt', 'Kanit'];
   const SYSTEM = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+  // Most text in a Windows screenshot is the system face. When a look-alike (Trebuchet MS, Tahoma) scores almost the same — typical for
+  // short UI strings, or menu items whose wide gaps OCR reports as single spaces — the system face wins.
+  const WINDOWS = /^Win/.test(navigator.platform || '');
+  const prior = c => (WINDOWS && c.label === 'Segoe UI' ? 0.03 : 0);
 
   const probeCtx = document.createElement('canvas').getContext('2d');
   const installedCache = new Map();
@@ -54,6 +63,23 @@
 
   const hex = (r, g, b) => '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
 
+  /** Groups of ink columns separated by gaps wider than letter spacing: [{ x0, x1 }] in box coordinates. */
+  function wordSegments(mask, w, h, ob) {
+    const gapMin = Math.max(3, Math.round((ob.y1 - ob.y0 + 1) * 0.3));
+    const segs = [];
+    let start = null, lastInk = null;
+    for (let x = ob.x0; x <= ob.x1; x++) {
+      let ink = false;
+      for (let y = ob.y0; y <= ob.y1 && !ink; y++) ink = mask[y * w + x] === 1;
+      if (!ink) continue;
+      if (start === null) start = x;
+      else if (x - lastInk - 1 >= gapMin) { segs.push({ x0: start, x1: lastInk }); start = x; }
+      lastInk = x;
+    }
+    if (start !== null) segs.push({ x0: start, x1: lastInk });
+    return segs;
+  }
+
   /**
    * base: canvas holding the screenshot; bbox: {x0,y0,x1,y1} of the recognised line in image pixels; text: the recognised string.
    * Returns { font (CSS family), bold, size (image px), ink (#rrggbb), background (#rrggbb), x, y (text-box top-left), score } or null.
@@ -94,47 +120,84 @@
     const inkWidth = ob.x1 - ob.x0 + 1;
 
     const pad = 10;
-    let best = null;
-    for (const c of candidates(text)) {
-      // The size at which this face makes the same ink width as the original.
-      const probeW = Math.ceil(inkWidth * 2.5) + 4 * pad, probeH = 40 * 3 + 2 * pad;
-      const pm = renderMask(text, c, 40, probeW, probeH, pad);
-      const pb = inkBounds(pm, probeW, probeH);
-      if (!pb) continue;
-      const size = Math.round(40 * inkWidth / Math.max(1, pb.x1 - pb.x0 + 1));
-      if (size < 5 || size > 600) continue;
-
-      const bw = Math.max(w + 2 * pad, inkWidth + 4 * pad), bh = Math.max(h + 2 * pad, Math.round(size * 2.4) + 2 * pad);
-      const big = renderMask(text, c, size, bw, bh, pad);
-      const rb = inkBounds(big, bw, bh);
-      if (!rb) continue;
-      const baseX = ob.x0 - (rb.x0 - pad), baseY = ob.y0 - (rb.y0 - pad);   // text-box origin that puts the rendered ink on the original's
-
-      let bestHere = null;
-      for (let dy = -3; dy <= 3; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
-          const ox = baseX + dx, oy = baseY + dy;
-          let inter = 0, union = 0;
-          for (let y = 0; y < h; y++) {
-            const by = y - oy + pad;
-            for (let x = 0; x < w; x++) {
-              const bx = x - ox + pad;
-              const r = bx >= 0 && by >= 0 && bx < bw && by < bh && big[by * bw + bx] === 1;
-              const o = original[y * w + x] === 1;
-              if (r && o) inter++;
-              if (r || o) union++;
-            }
-          }
-          const score = union ? inter / union : 0;
-          if (!bestHere || score > bestHere.score) bestHere = { score, ox, oy };
+    // Word mode: when the ink splits into exactly as many groups as the text has words, each word is sized and placed on its own group.
+    // Menus, toolbars and table cells space words far wider than a space character, and OCR reports those gaps as single spaces, so
+    // matching the line as one string would get both the size and the face wrong.
+    const words = String(text).trim().split(/\s+/).filter(Boolean);
+    const segs = wordSegments(original, w, h, ob);
+    const wordMode = words.length > 1 && segs.length === words.length;
+    const iou = (rendered, ox, oy, rw, rh) => {
+      let inter = 0, union = 0;
+      for (let y = 0; y < h; y++) {
+        const by = y - oy + pad;
+        for (let x = 0; x < w; x++) {
+          const bx = x - ox + pad;
+          const r = bx >= 0 && by >= 0 && bx < rw && by < rh && rendered[by * rw + bx] === 1;
+          const o = original[y * w + x] === 1;
+          if (r && o) inter++;
+          if (r || o) union++;
         }
       }
-      if (bestHere && (!best || bestHere.score > best.score)) best = { c, size, ...bestHere };
+      return union ? inter / union : 0;
+    };
+    let best = null, runnerUp = null;
+    for (const c of candidates(text)) {
+      // The size at which this face makes the same ink width as the original (summed per word in word mode).
+      const probeH = 40 * 3 + 2 * pad;
+      const inkW40 = s => { const pw = Math.ceil(40 * 0.9 * s.length) + 4 * pad + 40; const b = inkBounds(renderMask(s, c, 40, pw, probeH, pad), pw, probeH); return b ? b.x1 - b.x0 + 1 : 0; };
+      const target = wordMode ? segs.reduce((n, s) => n + s.x1 - s.x0 + 1, 0) : inkWidth;
+      const probe = wordMode ? words.reduce((n, wd) => n + inkW40(wd), 0) : inkW40(text);
+      if (!probe) continue;
+      const size = Math.round(40 * target / probe);
+      if (size < 5 || size > 600) continue;
+
+      const bh = Math.max(h + 2 * pad, Math.round(size * 2.4) + 2 * pad);
+      const lineW = Math.max(w + 2 * pad, Math.ceil(size * 0.9 * text.length) + 4 * pad);
+      const line = renderMask(text, c, size, lineW, bh, pad);
+      const rb = inkBounds(line, lineW, bh);
+      if (!rb) continue;
+      const baseY = ob.y0 - (rb.y0 - pad);      // text-box top that puts the rendered ink on the original's
+
+      let bestHere = null;
+      if (wordMode) {
+        // Stamp each word, ink-left on its own group, into one mask the size of the box (in the same coordinates as `line`).
+        const bw = w + 2 * pad, stamp = new Uint8Array(bw * bh);
+        let firstX = null;
+        words.forEach((wd, i) => {
+          const ww = Math.ceil(size * 0.9 * wd.length) + 4 * pad + size, m = renderMask(wd, c, size, ww, bh, pad), b = inkBounds(m, ww, bh);
+          if (!b) return;
+          const ox = segs[i].x0 - (b.x0 - pad);       // word origin in box coordinates
+          if (firstX === null) firstX = ox;
+          for (let y = 0; y < bh; y++) for (let x = 0; x < ww; x++) {
+            if (!m[y * ww + x]) continue;
+            const tx = x + ox;      // = (box x of this pixel) + pad, the column iou() reads for an origin of 0
+            if (tx >= 0 && tx < bw) stamp[y * bw + tx] = 1;
+          }
+        });
+        for (let dy = -3; dy <= 3; dy++) {
+          const score = iou(stamp, 0, baseY + dy, bw, bh);
+          if (!bestHere || score > bestHere.score) bestHere = { score, ox: firstX, oy: baseY + dy };
+        }
+      } else {
+        const baseX = ob.x0 - (rb.x0 - pad);
+        for (let dy = -3; dy <= 3; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const score = iou(line, baseX + dx, baseY + dy, lineW, bh);
+            if (!bestHere || score > bestHere.score) bestHere = { score, ox: baseX + dx, oy: baseY + dy };
+          }
+        }
+      }
+      if (bestHere) {
+        const ranked = bestHere.score + prior(c);
+        if (!best || ranked > best.ranked) { runnerUp = best; best = { c, size, ...bestHere, ranked }; }
+        else if (!runnerUp || ranked > runnerUp.ranked) runnerUp = { c, size, ...bestHere, ranked };
+      }
     }
     if (!best) return null;
     return {
       font: best.c.family, fontLabel: best.c.label, bold: best.c.bold, size: best.size, ink, background: hex(bg.r, bg.g, bg.b),
       x: rx + best.ox, y: ry + best.oy, score: best.score,
+      runnerUp: runnerUp && { font: runnerUp.c.label, bold: runnerUp.c.bold, score: runnerUp.score },
     };
   }
 

@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>History</title>
+<link rel="stylesheet" href="brand.css">
+<link rel="stylesheet" href="lists.css">
+</head>
+<body>
+  <header class="top">
+    <h1 data-t="History"></h1>
+    <input type="search" id="q" class="search" spellcheck="false" data-t-placeholder="Search the text in your captures, or a date (2026-10-20)">
+    <button class="btn" id="clear" data-t="Delete all…"></button>
+  </header>
+  <p class="sub" id="sub"></p>
+  <main id="grid" class="grid" aria-live="polite"></main>
+  <p class="empty" id="empty" hidden></p>
+  <script src="common.js"></script>
+  <script src="library.js"></script>
+</body>
+</html>

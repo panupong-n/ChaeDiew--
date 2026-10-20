@@ -6,8 +6,9 @@
 <title>Tenix-ChaeDiew</title>
 <link rel="stylesheet" href="brand.css">
 <style>
-  body { display: flex; flex-direction: column; align-items: center; padding: 34px 32px 22px; gap: 20px; text-align: center; }
-  .icon { width: 84px; height: 84px; border-radius: 19px; }
+  body { display: flex; flex-direction: column; align-items: center; padding: 30px 32px 20px; gap: 18px; text-align: center; overflow-y: auto; }
+  .icon { width: 76px; height: 76px; border-radius: 17px; flex: none; }
+  .logo { flex: none; }
   .logo { height: 38px; width: auto; }
   .tag { color: var(--text-muted); max-width: 320px; margin: 0; }
   .actions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 330px; }
@@ -18,9 +19,17 @@
   .status b { color: var(--accent); font-weight: 600; } .status.ok b { color: var(--positive); } .status.warn b { color: var(--caution); }
   .foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; align-items: center; }
   .lang { display: inline-flex; background: var(--ink-raised); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
-  .lang button { border: 0; background: transparent; color: var(--text-muted); height: 24px; padding: 0 10px; border-radius: 6px; font-size: 12px; }
+  .lang button { border: 0; background: transparent; color: var(--text-muted); height: 30px; padding: 0 12px; border-radius: 6px; font-size: 12px; }
   .lang button[aria-checked="true"] { background: var(--accent); color: var(--ink); font-weight: 600; }
   .ver { font-size: 11.5px; color: var(--text-faint); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .pair .btn { padding: 0 12px; }
+  .pair .btn { justify-content: center; }
+  kbd.off { text-decoration: line-through; }
+  .warn-box { display: flex; gap: 10px; align-items: flex-start; text-align: left; max-width: 330px; width: 100%; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--caution); color: var(--caution); font-size: 12.5px; }
+  .warn-box svg { width: 16px; height: 16px; flex: none; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .warn-box button { border: 0; background: none; color: var(--text); padding: 0; text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -30,8 +39,17 @@
   <div class="actions">
     <button class="btn primary" id="area"><span data-t="Capture an area"></span><kbd id="k-area"></kbd></button>
     <button class="btn" id="full"><span data-t="Capture the whole screen"></span><kbd id="k-full"></kbd></button>
+    <button class="btn" id="scroll"><span data-t="Scrolling capture"></span><kbd id="k-scroll"></kbd></button>
     <button class="btn" id="open"><span data-t="Open a picture…"></span><kbd id="k-open"></kbd></button>
-    <button class="btn" id="license"><span data-t="License"></span></button>
+    <div class="pair">
+      <button class="btn" id="history"><span data-t="History"></span></button>
+      <button class="btn" id="settings"><span data-t="Settings"></span></button>
+      <button class="btn" id="license"><span data-t="License"></span></button>
+    </div>
+  </div>
+  <div class="warn-box" id="hk-warn" role="alert" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+    <div><span id="hk-warn-text"></span> <button id="hk-fix" data-t="Change in Settings"></button></div>
   </div>
   <div class="status" id="status"></div>
   <div class="foot">

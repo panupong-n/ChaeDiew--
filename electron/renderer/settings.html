@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Settings</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { overflow: auto; padding: 22px 26px 26px; display: flex; flex-direction: column; gap: 22px; }
+  h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  section { display: flex; flex-direction: column; gap: 12px; }
+  h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .row { display: grid; grid-template-columns: 190px 1fr; gap: 12px; align-items: center; }
+  .row > label, .row > .label { color: var(--text-muted); font-size: 12.5px; }
+  .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; }
+  .note { color: var(--text-faint); font-size: 12px; margin: 0; }
+  .seg { display: inline-flex; background: var(--ink-raised); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--text-muted); height: 30px; padding: 0 14px; border-radius: 6px; font-size: 12.5px; font-weight: 500; }
+  .seg button:hover { color: var(--text); }
+  .seg button[aria-checked="true"] { background: var(--accent); color: var(--ink); font-weight: 600; }
+  .switch { position: relative; width: 38px; height: 22px; border-radius: 11px; border: 1px solid var(--line); background: var(--ink-raised); padding: 0; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-muted); transition: transform .12s ease-out; }
+  .switch[aria-checked="true"] { background: var(--accent); border-color: transparent; }
+  .switch[aria-checked="true"]::after { transform: translateX(16px); background: var(--ink); }
+  .path { flex: 1; min-width: 0; height: 30px; display: flex; align-items: center; padding: 0 10px; border-radius: 7px; background: var(--ink-raised); border: 1px solid var(--line);
+    font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; user-select: text; }
+  .key { min-width: 150px; height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: 7px; background: var(--ink-raised);
+    border: 1px solid var(--line); font: 12.5px ui-monospace, Consolas, Menlo, monospace; color: var(--text); }
+  .key.recording { border-color: var(--accent); color: var(--accent); }
+  .key.off { color: var(--caution); text-decoration: line-through; }
+  .state { font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+  .state.ok { color: var(--positive); } .state.bad { color: var(--caution); }
+  .state svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .presets .btn { min-height: 30px; font-size: 12px; padding: 0 12px; }
+  .msg { min-height: 16px; font-size: 12px; color: var(--caution); }
+  .credit { margin-top: auto; }
+  .fields { display: flex; flex-direction: column; gap: 10px; }
+  input.text { flex: 1; min-width: 0; height: 30px; padding: 0 10px; border-radius: 7px; background: var(--ink-raised); border: 1px solid var(--line); color: var(--text); user-select: text; font-size: 12.5px; }
+  input.text:focus { border-color: var(--accent); outline: none; }
+  input.text.short { flex: none; width: 110px; font-variant-numeric: tabular-nums; }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .check { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text); }
+  .row.top { align-items: start; }
+  .ctl.col { flex-direction: column; align-items: stretch; gap: 6px; }
+  textarea { width: 100%; resize: vertical; min-height: 64px; padding: 8px 10px; border-radius: 7px; background: var(--ink-raised); border: 1px solid var(--line);
+    color: var(--text); font: 12px ui-monospace, Consolas, Menlo, monospace; user-select: text; }
+</style>
+</head>
+<body>
+  <h1 data-t="Settings"></h1>
+
+  <section aria-labelledby="h-general">
+    <h2 id="h-general" data-t="General"></h2>
+    <div class="row"><span class="label" data-t="Language"></span>
+      <div class="ctl"><div class="seg" role="radiogroup" id="lang" data-t-label="Language">
+        <button role="radio" data-v="th">ไทย</button><button role="radio" data-v="en">English</button></div></div></div>
+    <div class="row"><span class="label" id="l-login" data-t="Open when I sign in"></span>
+      <div class="ctl"><button class="switch" role="switch" id="login" aria-labelledby="l-login"></button>
+        <span class="note" data-t="Starts in the notification area, ready for the shortcuts."></span></div></div>
+  </section>
+
+  <section aria-labelledby="h-keys">
+    <h2 id="h-keys" data-t="Shortcuts"></h2>
+    <div class="row"><span class="label" data-t="Capture an area"></span>
+      <div class="ctl"><span class="key" id="key-area" tabindex="0"></span><button class="btn" data-record="area" data-t="Change"></button><span class="state" id="st-area"></span></div></div>
+    <div class="row"><span class="label" data-t="Capture the whole screen"></span>
+      <div class="ctl"><span class="key" id="key-full" tabindex="0"></span><button class="btn" data-record="full" data-t="Change"></button><span class="state" id="st-full"></span></div></div>
+    <div class="row"><span class="label" data-t="Scrolling capture"></span>
+      <div class="ctl"><span class="key" id="key-scroll" tabindex="0"></span><button class="btn" data-record="scroll" data-t="Change"></button><span class="state" id="st-scroll"></span></div></div>
+    <p class="note" data-t="While choosing a shortcut, Backspace removes it."></p>
+    <div class="row"><span class="label" data-t="Quick choices"></span><div class="ctl presets" id="presets"></div></div>
+    <div class="msg" id="key-msg" role="status"></div>
+    <p class="note" id="prtscn-note" data-t="Print Screen: Windows may keep this key for its own Snipping Tool. Turn that off under Settings ▸ Accessibility ▸ Keyboard to use it here."></p>
+  </section>
+
+  <section aria-labelledby="h-save">
+    <h2 id="h-save" data-t="Saving"></h2>
+    <div class="row"><span class="label" data-t="Folder"></span>
+      <div class="ctl"><span class="path" id="dir"></span><button class="btn" id="choose" data-t="Choose…"></button><button class="btn" id="open-dir" data-t="Open"></button></div></div>
+    <div class="row"><span class="label" data-t="Format"></span>
+      <div class="ctl"><div class="seg" role="radiogroup" id="format"><button role="radio" data-v="png">PNG</button><button role="radio" data-v="jpg">JPEG</button></div></div></div>
+    <div class="row"><span class="label" id="l-ask" data-t="Ask where to save each time"></span>
+      <div class="ctl"><button class="switch" role="switch" id="ask" aria-labelledby="l-ask"></button>
+        <span class="note" id="ask-note"></span></div></div>
+  </section>
+
+  <section aria-labelledby="h-history">
+    <h2 id="h-history" data-t="History"></h2>
+    <div class="row"><span class="label" id="l-lib" data-t="Keep every capture"></span>
+      <div class="ctl"><button class="switch" role="switch" id="lib-on" aria-labelledby="l-lib"></button>
+        <span class="note" data-t="Only on this computer. The text in each capture becomes searchable."></span></div></div>
+    <div class="row"><span class="label" data-t="Delete captures after"></span>
+      <div class="ctl"><div class="seg" role="radiogroup" id="lib-days"><button role="radio" data-v="7"></button><button role="radio" data-v="30"></button><button role="radio" data-v="90"></button><button role="radio" data-v="0"></button></div></div></div>
+    <div class="row"><span class="label"></span><div class="ctl"><button class="btn" id="lib-open" data-t="Open history"></button><span class="note" id="lib-count"></span></div></div>
+  </section>
+
+  <section aria-labelledby="h-upload">
+    <h2 id="h-upload" data-t="Upload"></h2>
+    <p class="note" data-t="Nothing leaves this computer unless you set this up. The link is copied after each upload."></p>
+    <div class="row"><span class="label" data-t="Upload to"></span>
+      <div class="ctl"><div class="seg" role="radiogroup" id="up-mode"><button role="radio" data-v="none" data-t="Off"></button><button role="radio" data-v="s3">S3</button><button role="radio" data-v="http">HTTP</button></div></div></div>
+    <div id="up-s3" class="fields" hidden>
+      <div class="row"><label for="s3-endpoint" data-t="Endpoint"></label><div class="ctl"><input class="text" id="s3-endpoint" data-k="endpoint" spellcheck="false" data-t-placeholder="Empty for AWS, or https://minio.example.com"></div></div>
+      <div class="row"><label for="s3-region" data-t="Region"></label><div class="ctl"><input class="text" id="s3-region" data-k="region" spellcheck="false"></div></div>
+      <div class="row"><label for="s3-bucket" data-t="Bucket"></label><div class="ctl"><input class="text" id="s3-bucket" data-k="bucket" spellcheck="false"></div></div>
+      <div class="row"><label for="s3-prefix" data-t="Folder in the bucket"></label><div class="ctl"><input class="text" id="s3-prefix" data-k="prefix" spellcheck="false"></div></div>
+      <div class="row"><label for="s3-accessKey" data-t="Access key"></label><div class="ctl"><input class="text" id="s3-accessKey" data-k="accessKey" spellcheck="false" autocomplete="off"></div></div>
+      <div class="row"><label for="s3-secret" data-t="Secret key"></label><div class="ctl"><input class="text" type="password" id="s3-secret" autocomplete="new-password"></div></div>
+      <div class="row"><label for="s3-publicBase" data-t="Public address (optional)"></label><div class="ctl"><input class="text" id="s3-publicBase" data-k="publicBase" spellcheck="false" placeholder="https://cdn.example.com"></div></div>
+      <div class="row"><label for="s3-expirySeconds" data-t="Private link lasts (seconds)"></label><div class="ctl"><input class="text short" id="s3-expirySeconds" data-k="expirySeconds" inputmode="numeric"></div></div>
+    </div>
+    <div id="up-http" class="fields" hidden>
+      <div class="row"><label for="http-url" data-t="Address"></label><div class="ctl"><input class="text" id="http-url" spellcheck="false" placeholder="https://files.example.com/upload"></div></div>
+      <div class="row"><label for="http-token" data-t="Token (optional)"></label><div class="ctl"><input class="text" type="password" id="http-token" autocomplete="new-password"></div></div>
+      <p class="note" data-t="The picture is sent as the form field “file”; the reply must contain the link (url, link or data.url)."></p>
+    </div>
+    <div class="row" id="up-test-row" hidden><span class="label"></span><div class="ctl"><button class="btn" id="up-test" data-t="Test upload"></button><span class="note" id="up-msg" role="status"></span></div></div>
+  </section>
+
+  <section aria-labelledby="h-pii">
+    <h2 id="h-pii" data-t="Hide personal data"></h2>
+    <p class="note" data-t="What the eye-slash button in the editor finds and pixelates."></p>
+    <div class="checks" id="pii-kinds"></div>
+    <div class="row top"><label for="pii-custom" data-t="Your own patterns"></label>
+      <div class="ctl col"><textarea id="pii-custom" rows="3" spellcheck="false" placeholder="EMP-\d{5}"></textarea>
+        <span class="note" data-t="One regular expression per line, for example EMP-\d{5}."></span><span class="msg" id="pii-msg" role="status"></span></div></div>
+  </section>
+
+  <div class="credit">Powered by <b>Panupong Nijjaboon</b></div>
+  <script src="pii.js"></script>
+  <script src="common.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

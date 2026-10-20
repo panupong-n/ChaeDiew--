@@ -1,7 +1,7 @@
 {
   "name": "tenix-chaediew",
   "productName": "Tenix-ChaeDiew",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Tenix-ChaeDiew (เท็นนิค แชะเดียว) — screenshot, annotate, read text and share. Powered by Panupong Nijjaboon.",
   "author": "Panupong Nijjaboon",
   "license": "UNLICENSED",
@@ -9,7 +9,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test/license.test.js && node test/editor-model.test.js",
+    "test": "node test/license.test.js && node test/editor-model.test.js && node test/platform.test.js && node test/strings.test.js && node test/pii.test.js && node test/upload.test.js && node test/library.test.js && node test/gif.test.js && node test/stitch.test.js",
     "smoke": "electron . --smoke",
     "dist:mac": "electron-builder --mac dmg --universal",
     "dist:win": "electron-builder --win nsis --x64",
@@ -40,7 +40,11 @@
       "assets/**",
       "tessdata/**",
       "package.json",
-      "test/smoke.js"
+      "test/smoke.js",
+      "test/smoke-platform.js",
+      "test/smoke-tools.js",
+      "test/smoke-extras.js",
+      "test/smoke-license.js"
     ],
     "mac": {
       "category": "public.app-category.graphics-design",

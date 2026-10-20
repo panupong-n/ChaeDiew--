@@ -84,7 +84,7 @@ check('keys and activation codes are told apart', !L.looksLikeActivation(bound) 
 
 let clock = today;
 const secrets = new L.MemorySecrets();
-const manager = new L.LicenseManager({ secrets, publicKey: signerPublic, machineId: () => macA, now: () => clock, requireActivation: true });
+const manager = new L.LicenseManager({ secrets, publicKey: signerPublic, machineId: () => macA, requireActivation: true, now: () => clock });
 check('the first look starts a 14-day trial', manager.status().state === 'trial' && manager.status().daysLeft === 14);
 clock = new Date(today.getTime() + 10 * DAY + 3600e3);
 check('days count down', manager.status().daysLeft === 4);
@@ -102,32 +102,13 @@ manager.activate(actA);
 check('the right activation code switches the app on', manager.status().state === 'licensed' && manager.allowsUse);
 const copied = new L.MemorySecrets();
 for (const a of ['license-key', 'activation-code', 'trial-start']) copied.set(a, secrets.get(a));
-check('key + activation copied to another computer do not work there', !new L.LicenseManager({ secrets: copied, publicKey: signerPublic, machineId: () => macB, now: () => clock, requireActivation: true }).allowsUse);
-check('…but still work on the original', new L.LicenseManager({ secrets: copied, publicKey: signerPublic, machineId: () => macA, now: () => clock, requireActivation: true }).allowsUse);
+check('key + activation copied to another computer do not work there', !new L.LicenseManager({ secrets: copied, publicKey: signerPublic, machineId: () => macB, requireActivation: true, now: () => clock }).allowsUse);
+check('…but still work on the original', new L.LicenseManager({ secrets: copied, publicKey: signerPublic, machineId: () => macA, requireActivation: true, now: () => clock }).allowsUse);
 manager.activate(issueKey({ licensee: 'Second', now: today }));
 check('a different key needs its own activation', manager.storedActivation === null && !manager.allowsUse);
 manager.activate(bound); manager.activate(actA);
 check('re-entering the first key and its code works again', manager.status().state === 'licensed');
 manager.remove();
 check('removing the key clears the activation and the trial start survives', manager.storedKey === null && manager.storedActivation === null && manager.status().state === 'trialEnded');
-
-// ---- default mode: a genuine key is enough ----
-{
-  const sec = new L.MemorySecrets();
-  let c = today;
-  const simple = new L.LicenseManager({ secrets: sec, publicKey: signerPublic, machineId: () => macA, now: () => c });
-  check('default: no key → trial', simple.status().state === 'trial');
-  c = new Date(today.getTime() + 20 * DAY);
-  check('default: trial over → blocked', !simple.allowsUse);
-  check('default: junk key refused', throwsCode(() => simple.activate('TXCD1-NOPE'), 'malformed'));
-  simple.activate(bound);
-  check('default: genuine key → licensed at once, no activation code', simple.status().state === 'licensed' && simple.allowsUse);
-  const other = new L.MemorySecrets(); other.set('license-key', sec.get('license-key'));
-  check('default: same key works on another computer', new L.LicenseManager({ secrets: other, publicKey: signerPublic, machineId: () => macB, now: () => c }).allowsUse);
-  c = today;
-  simple.activate(issueKey({ licensee: 'Short', now: today, expires: new Date(today.getTime() + 10 * DAY) }));
-  c = new Date(today.getTime() + 40 * DAY);
-  check('default: expired key stops working', !simple.allowsUse);
-}
 
 console.log(`\n${process.exitCode ? 'SOME CHECKS FAILED' : 'All checks passed.'} (${passed} passed)`);

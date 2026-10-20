@@ -4,17 +4,20 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'">
 <title>Capture</title>
+<link rel="stylesheet" href="brand.css">
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; cursor: crosshair; user-select: none; }
-  #shot { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  /* Not draggable and not a pointer target: dragging on an <img> starts an image drag-and-drop (on Windows a modal loop that freezes the
+     app until the button is released) instead of choosing an area. */
+  #shot { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; -webkit-user-drag: none; }
   #dim { position: fixed; inset: 0; background: rgba(8, 9, 12, 0.45); }
-  #sel { position: fixed; border: 1.5px solid #1FA0FF; box-shadow: 0 0 0 99999px rgba(8, 9, 12, 0.5); display: none; pointer-events: none; }
-  #size { position: fixed; display: none; background: #15171C; color: #F5F7FA; font: 600 12px -apple-system, "Segoe UI", sans-serif; padding: 3px 8px; border-radius: 6px; border: 1px solid #2D323C; pointer-events: none; font-variant-numeric: tabular-nums; }
-  #help { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); background: #15171C; color: #F5F7FA; font: 500 13px -apple-system, "Segoe UI", "Leelawadee UI", sans-serif; padding: 8px 16px; border-radius: 10px; border: 1px solid #2D323C; pointer-events: none; }
+  #sel { position: fixed; border: 1.5px solid var(--accent); box-shadow: 0 0 0 99999px rgba(8, 9, 12, 0.5); display: none; pointer-events: none; }
+  #size { position: fixed; display: none; background: var(--ink); color: var(--text); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); pointer-events: none; font-variant-numeric: tabular-nums; }
+  #help { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); background: var(--ink); color: var(--text); font-weight: 500; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--line); pointer-events: none; white-space: nowrap; }
 </style>
 </head>
 <body>
-  <img id="shot" alt="">
+  <img id="shot" alt="" draggable="false">
   <div id="dim"></div>
   <div id="sel"></div>
   <div id="size"></div>

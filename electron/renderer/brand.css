@@ -17,6 +17,10 @@
 }
 
 * { box-sizing: border-box; }
+/* `hidden` must win over component display rules (.btn is inline-flex), or hidden buttons stay on screen. */
+[hidden] { display: none !important; }
+::selection { background: var(--accent-soft); color: var(--text); }
+::placeholder { color: var(--text-faint); opacity: 1; }
 html, body { margin: 0; height: 100%; }
 body {
   background: var(--ink);

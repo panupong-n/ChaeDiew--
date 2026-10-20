@@ -24,16 +24,18 @@
   .spacer { flex: 1; }
   .foot { margin-top: auto; }
   .copyline { display: flex; gap: 8px; align-items: center; }
+  .copyline .btn { min-width: 76px; }
+  h2 svg, .btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 </style>
 </head>
 <body>
   <img class="logo" src="../assets/wordmark-on-dark.png" alt="Tenix-ChaeDiew">
   <div class="reason" id="reason" hidden></div>
   <section id="status"></section>
-  <hr>
-  <section id="entry">
-    <label class="l" for="key" data-t="License key"></label>
-    <textarea id="key" spellcheck="false" placeholder="TXCD1-…"></textarea>
+  <hr id="entry-rule">
+  <section>
+    <label class="l" for="key" data-t="License key or activation code"></label>
+    <textarea id="key" spellcheck="false" placeholder="TXCD1-…  /  TXAC1-…"></textarea>
     <div class="msg" id="msg" role="status"></div>
     <div class="actions">
       <button class="btn primary" id="activate" data-t="Activate"></button>
@@ -42,7 +44,6 @@
       <button class="btn" id="remove" data-t="Remove license" hidden></button>
     </div>
   </section>
-  <div class="actions" id="licensedActions" hidden><span class="spacer"></span><button class="btn" id="remove2" data-t="Remove license"></button></div>
   <div class="credit foot">Powered by <b>Panupong Nijjaboon</b></div>
   <script src="common.js"></script>
   <script src="license.js"></script>

@@ -21,8 +21,10 @@ process.on('message', async msg => {
     workerPromise ??= createWorker(['eng', 'tha'], 1, { langPath: msg.langPath, cachePath: msg.cachePath, gzip: true, workerPath: path.join(__dirname, 'ocr-thread.js') });
     const worker = await workerPromise;
     const { data } = await worker.recognize(Buffer.from(msg.png, 'base64'));
+    // Word boxes let Hide PII cover just the matching part of a line.
     const lines = (data.lines || [])
-      .map(l => ({ text: tidy(l.text || '').trim(), bbox: l.bbox, confidence: l.confidence }))
+      .map(l => ({ text: tidy(l.text || '').trim(), bbox: l.bbox, confidence: l.confidence,
+        words: (l.words || []).map(w => ({ text: (w.text || '').trim(), bbox: w.bbox })).filter(w => w.text) }))
       .filter(l => l.text.length > 0);
     process.send({ id: msg.id, text: tidy(data.text || '').trim(), lines });
   } catch (error) {

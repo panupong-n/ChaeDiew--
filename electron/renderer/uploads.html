@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Uploaded links</title>
+<link rel="stylesheet" href="brand.css">
+<link rel="stylesheet" href="lists.css">
+</head>
+<body>
+  <header class="top">
+    <h1 data-t="Uploaded links"></h1>
+    <span style="flex:1"></span>
+    <button class="btn" id="clear" data-t="Clear list"></button>
+  </header>
+  <p class="sub" data-t="Removing a link here does not delete the file on the server."></p>
+  <main class="rows" id="rows"></main>
+  <p class="empty" id="empty" hidden data-t="Pictures you upload from the editor are listed here, with their links."></p>
+  <script src="common.js"></script>
+  <script src="uploads.js"></script>
+</body>
+</html>
