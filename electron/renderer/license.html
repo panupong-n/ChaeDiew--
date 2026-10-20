@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>License</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { padding: 26px 28px 22px; display: flex; flex-direction: column; gap: 16px; overflow: auto; }
+  .logo { height: 40px; width: auto; align-self: flex-start; }
+  .reason { color: var(--caution); }
+  h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  h2.ok { color: var(--positive); } h2.info { color: var(--accent); } h2.warn { color: var(--caution); }
+  p { margin: 4px 0 0; color: var(--text-muted); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 10px 0 0; }
+  dt { color: var(--text-muted); } dd { margin: 0; user-select: text; }
+  .mono { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 0; }
+  label.l { color: var(--text-muted); font-weight: 600; font-size: 12px; }
+  textarea { width: 100%; height: 86px; margin-top: 6px; resize: none; background: var(--ink-raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--text); user-select: text; font: 11.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  textarea.bad { border-color: var(--caution); }
+  .msg { min-height: 18px; font-size: 12px; margin-top: 6px; } .msg.bad { color: var(--caution); } .msg.good { color: var(--positive); }
+  .actions { display: flex; gap: 10px; margin-top: 10px; align-items: center; }
+  .spacer { flex: 1; }
+  .foot { margin-top: auto; }
+  .copyline { display: flex; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+  <img class="logo" src="../assets/wordmark-on-dark.png" alt="Tenix-ChaeDiew">
+  <div class="reason" id="reason" hidden></div>
+  <section id="status"></section>
+  <hr>
+  <section id="entry">
+    <label class="l" for="key" data-t="License key"></label>
+    <textarea id="key" spellcheck="false" placeholder="TXCD1-…"></textarea>
+    <div class="msg" id="msg" role="status"></div>
+    <div class="actions">
+      <button class="btn primary" id="activate" data-t="Activate"></button>
+      <button class="btn" id="paste" data-t="Paste"></button>
+      <span class="spacer"></span>
+      <button class="btn" id="remove" data-t="Remove license" hidden></button>
+    </div>
+  </section>
+  <div class="actions" id="licensedActions" hidden><span class="spacer"></span><button class="btn" id="remove2" data-t="Remove license"></button></div>
+  <div class="credit foot">Powered by <b>Panupong Nijjaboon</b></div>
+  <script src="common.js"></script>
+  <script src="license.js"></script>
+</body>
+</html>

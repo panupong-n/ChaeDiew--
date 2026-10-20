@@ -1,0 +1,50 @@
+/* Tenix-ChaeDiew design tokens — the same palette as DESIGN.md / Brand.swift. */
+:root {
+  --ink: #15171C;
+  --ink-raised: #1D2027;
+  --ink-hover: #2A2E37;
+  --canvas: #101215;
+  --line: #2D323C;
+  --text: #F5F7FA;
+  --text-muted: #A3ABBA;
+  --text-faint: #7C8494;
+  --accent: #1FA0FF;
+  --accent-soft: rgba(31, 160, 255, 0.2);
+  --positive: #4ADE80;
+  --caution: #FBBF24;
+  --radius: 7px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", "Leelawadee UI", "Thonburi", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 30px; padding: 0 14px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--ink-raised); color: var(--text);
+  font-weight: 500;
+}
+.btn:hover { background: var(--ink-hover); }
+.btn:active { opacity: 0.85; }
+.btn.primary { background: var(--accent); border-color: transparent; color: var(--ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.45; pointer-events: none; }
+
+.credit { color: var(--text-faint); font-size: 12px; }
+.credit b { color: var(--accent); font-weight: 600; }
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-thumb { background: #2f3541; border-radius: 6px; border: 3px solid var(--canvas); }
+::-webkit-scrollbar-corner { background: var(--canvas); }

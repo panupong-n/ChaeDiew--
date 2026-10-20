@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Tenix-ChaeDiew</title>
+<link rel="stylesheet" href="brand.css">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body>
+<header id="bar">
+  <div class="mac-space"></div>
+  <img class="brand" src="../assets/wordmark-on-dark.png" alt="Tenix-ChaeDiew" draggable="false">
+  <div class="group" id="g-history"></div>
+  <span class="sep"></span>
+  <div class="group" id="g-tools" role="toolbar" aria-label="Tools"></div>
+  <span class="sep"></span>
+  <div class="group" id="g-extras"></div>
+  <span class="grow"></span>
+  <span id="readout" title=""></span>
+  <div class="group" id="g-zoom"></div>
+  <span class="sep"></span>
+  <div class="group" id="g-share"></div>
+  <div class="win-space"></div>
+</header>
+
+<section id="strip" aria-label="Style"></section>
+
+<main id="stage">
+  <div id="scroller"><div id="holder"><canvas id="cv"></canvas></div></div>
+  <aside id="backdrop" hidden></aside>
+  <div id="editbox" hidden></div>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="modal" hidden></div>
+
+<script src="model.js"></script>
+<script src="fontmatch.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>

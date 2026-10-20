@@ -1,0 +1,18 @@
+# build output
+.build/
+*.app/
+dist/
+electron/dist/
+electron/node_modules/
+electron/out/
+# never commit licence material
+*licenses*.csv
+*.key
+ledger.json
+issued/
+# local / machine specific
+.DS_Store
+.claude/settings.local.json
+.codex/
+.claude/skills/impeccable/scripts/bin/
+.agents/skills/impeccable/scripts/bin/

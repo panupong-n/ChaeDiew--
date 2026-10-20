@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Tenix-ChaeDiew</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  body { display: flex; flex-direction: column; align-items: center; padding: 34px 32px 22px; gap: 20px; text-align: center; }
+  .icon { width: 84px; height: 84px; border-radius: 19px; }
+  .logo { height: 38px; width: auto; }
+  .tag { color: var(--text-muted); max-width: 320px; margin: 0; }
+  .actions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 330px; }
+  .actions .btn { justify-content: space-between; min-height: 38px; padding: 0 14px; }
+  kbd { font: 11.5px ui-monospace, Menlo, Consolas, monospace; color: var(--text-faint); }
+  .btn.primary kbd { color: rgba(21,23,28,.72); }
+  .status { font-size: 12.5px; color: var(--text-muted); }
+  .status b { color: var(--accent); font-weight: 600; } .status.ok b { color: var(--positive); } .status.warn b { color: var(--caution); }
+  .foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .lang { display: inline-flex; background: var(--ink-raised); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+  .lang button { border: 0; background: transparent; color: var(--text-muted); height: 24px; padding: 0 10px; border-radius: 6px; font-size: 12px; }
+  .lang button[aria-checked="true"] { background: var(--accent); color: var(--ink); font-weight: 600; }
+  .ver { font-size: 11.5px; color: var(--text-faint); }
+</style>
+</head>
+<body>
+  <img class="icon" src="../assets/icon.png" alt="">
+  <img class="logo" src="../assets/wordmark-on-dark.png" alt="Tenix-ChaeDiew">
+  <p class="tag" data-t="Screenshot, annotate, read text and share — built for your team."></p>
+  <div class="actions">
+    <button class="btn primary" id="area"><span data-t="Capture an area"></span><kbd id="k-area"></kbd></button>
+    <button class="btn" id="full"><span data-t="Capture the whole screen"></span><kbd id="k-full"></kbd></button>
+    <button class="btn" id="open"><span data-t="Open a picture…"></span><kbd id="k-open"></kbd></button>
+    <button class="btn" id="license"><span data-t="License"></span></button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="foot">
+    <div class="lang" role="radiogroup" aria-label="Language">
+      <button data-lang="th" role="radio">ไทย</button><button data-lang="en" role="radio">English</button>
+    </div>
+    <div class="credit">Powered by <b>Panupong Nijjaboon</b></div>
+    <div class="ver">v0.1.0</div>
+  </div>
+  <script src="common.js"></script>
+  <script src="home.js"></script>
+</body>
+</html>

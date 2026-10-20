@@ -1,0 +1,82 @@
+{
+  "name": "tenix-chaediew",
+  "productName": "Tenix-ChaeDiew",
+  "version": "0.1.0",
+  "description": "Tenix-ChaeDiew (เท็นนิค แชะเดียว) — screenshot, annotate, read text and share. Powered by Panupong Nijjaboon.",
+  "author": "Panupong Nijjaboon",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/license.test.js && node test/editor-model.test.js",
+    "smoke": "electron . --smoke",
+    "dist:mac": "electron-builder --mac dmg --universal",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist": "electron-builder --mac dmg --universal --win nsis --x64"
+  },
+  "dependencies": {
+    "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "pe-library": "^2.0.1",
+    "resedit": "^3.1.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/tha": "^1.0.0"
+  },
+  "build": {
+    "appId": "com.tenix.chaediew.electron",
+    "productName": "Tenix-ChaeDiew",
+    "copyright": "Powered by Panupong Nijjaboon",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**",
+      "renderer/**",
+      "assets/**",
+      "tessdata/**",
+      "package.json",
+      "test/smoke.js"
+    ],
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "icon": "assets/icon.icns",
+      "identity": "-",
+      "target": [
+        "dmg"
+      ],
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "Tenix-ChaeDiew needs to record the screen to take screenshots."
+      }
+    },
+    "dmg": {
+      "title": "Tenix-ChaeDiew ${version}"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Tenix-ChaeDiew",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico"
+    },
+    "afterPack": "build/after-pack.js"
+  }
+}
